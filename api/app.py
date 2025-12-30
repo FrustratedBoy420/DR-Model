@@ -12,7 +12,7 @@ import tf_keras
 app = FastAPI()
 
 # ⚠️ Class order exactly wahi jo aapne training ke waqt rakha tha
-CLASSES = ["No_DR Chances ", "Mild Chances ", "Severe Chances "]
+CLASSES = ["Negative", "Mild Diabetic Retinopathy", "Proliferative Diabetic Retinopathy"]
 
 # Model Load logic
 MODEL_PATH = "dr_.keras" # Apni file ka naam yahan sahi rakhiyega
