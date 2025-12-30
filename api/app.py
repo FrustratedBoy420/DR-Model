@@ -4,35 +4,57 @@ import numpy as np
 from PIL import Image
 import io
 import os
+from tensorflow.keras.applications.efficientnet import preprocess_input
+
+# Legacy/Versioning issues ke liye
+import tf_keras 
 
 app = FastAPI()
 
-# Model Load karein (Path sahi rakhiyega)
-MODEL_PATH = os.path.join(os.getcwd(), "amd_model.keras")
-model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+# ⚠️ Class order exactly wahi jo aapne training ke waqt rakha tha
+CLASSES = ["No_DR Chances ", "Mild Chances ", "Severe Chances "]
+
+# Model Load logic
+MODEL_PATH = "dr_.keras" # Apni file ka naam yahan sahi rakhiyega
+model = None
+
+try:
+    # Model ko load karne ki koshish
+    model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+    print("✅ Model loaded successfully!")
+except Exception:
+    # Agar standard load fail ho toh tf_keras use karein
+    model = tf_keras.models.load_model(MODEL_PATH, compile=False)
+    print("✅ Model loaded using tf_keras wrapper!")
 
 @app.get("/")
 def home():
-    return {"status": "AMD Detection API is running"}
+    return {"status": "DR Detection API is Live"}
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
-    # 1. Image read karein
-    request_object_content = await file.read()
-    img = Image.open(io.BytesIO(request_object_content)).convert("RGB")
-    
-    # 2. Preprocessing (Jo aapne Gradio mein ki thi)
-    img = img.resize((224, 224))
-    img_array = np.array(img) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
+    try:
+        # 1. Image Read aur Resize (300x300 for EfficientNet)
+        content = await file.read()
+        img = Image.open(io.BytesIO(content)).convert("RGB")
+        img = img.resize((300, 300))
 
-    # 3. Prediction
-    prediction = model.predict(img_array)
-    pred_value = float(prediction[0][0])
+        # 2. Preprocessing
+        img_array = np.array(img, dtype=np.float32)
+        img_array = np.expand_dims(img_array, axis=0)
+        
+        # EfficientNet specific preprocessing (Scale/Normalization)
+        img_array = preprocess_input(img_array)
 
-    if pred_value >= 0.5:
-        result = f"AMD Detected ({pred_value:.2f})"
-    else:
-        result = f"Normal ({1 - pred_value:.2f})"
+        # 3. Model Prediction
+        preds = model.predict(img_array)
+        class_id = int(np.argmax(preds))
+        confidence = float(np.max(preds) * 100)
 
-    return result
+        # Output format fix (String + Number error fix)
+        result_text = f"{CLASSES[class_id]}+ Chances +{round(confidence, 3)}%"
+
+        return result_text
+
+    except Exception as e:
+        return {"error": str(e)}
