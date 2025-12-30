@@ -10,12 +10,18 @@ from tensorflow.keras.applications.efficientnet import preprocess_input
 import tf_keras 
 
 app = FastAPI()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # ⚠️ Class order exactly wahi jo aapne training ke waqt rakha tha
 CLASSES = ["Negative", "Mild Diabetic Retinopathy", "Proliferative Diabetic Retinopathy"]
 
 # Model Load logic
-MODEL_PATH = "dr_.keras" # Apni file ka naam yahan sahi rakhiyega
+MODEL_PATH = "dr_model_3class_final.keras" # Apni file ka naam yahan sahi rakhiyega
 model = None
 
 try:
@@ -52,9 +58,9 @@ async def predict(file: UploadFile = File(...)):
         confidence = float(np.max(preds) * 100)
 
         # Output format fix (String + Number error fix)
-        result_text = f"{CLASSES[class_id]}+ Chances +{round(confidence, 3)}%"
+        result_text = f"{CLASSES[class_id]}"
 
-        return result_text
+        return {"Dettected":result_text,"Chance":round(confidence, 3)}
 
     except Exception as e:
         return {"error": str(e)}
