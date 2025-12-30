@@ -5,7 +5,7 @@ from PIL import Image
 import io
 import os
 from tensorflow.keras.applications.efficientnet import preprocess_input
-
+from fastapi.middleware.cors import CORSMiddleware
 # Legacy/Versioning issues ke liye
 import tf_keras 
 
